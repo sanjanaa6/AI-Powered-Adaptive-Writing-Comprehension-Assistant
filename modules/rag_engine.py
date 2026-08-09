@@ -36,7 +36,10 @@ class RAGEngine:
             self.client = genai.Client(api_key=api_key)
         else:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel(self.model_name)
+            try:
+                self.model = genai.GenerativeModel(self.model_name)
+            except Exception:
+                self.model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
     def ingest_document(self, text: str, doc_name: str = "Source Doc"):
         """Splits document text into chunks and builds a TF-IDF vector retrieval index."""
@@ -86,7 +89,7 @@ class RAGEngine:
                         "score": float(sims[idx])
                     })
             
-            # Fallback: if no chunks met threshold (e.g. short or generic question), return top_k chunks from document
+            # Fallback: if no chunks met threshold, return top_k chunks from document
             if not results and self.chunks:
                 for c in self.chunks[:top_k]:
                     results.append({
@@ -145,7 +148,7 @@ ANSWER:
                 except Exception as e_model:
                     err_msg = str(e_model).lower()
                     if "404" in err_msg or "not found" in err_msg or "not supported" in err_msg:
-                        fallbacks = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"]
+                        fallbacks = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-pro"]
                         fallback_success = False
                         for fb in fallbacks:
                             if fb == self.model_name:
@@ -162,8 +165,21 @@ ANSWER:
                     else:
                         raise e_model
             else:
-                response = self.model.generate_content(prompt)
-                answer_text = response.text
+                fallbacks = [self.model_name, "gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.5-pro", "gemini-pro"]
+                fallback_success = False
+                last_err = None
+                for fb in fallbacks:
+                    try:
+                        m = genai.GenerativeModel(fb)
+                        response = m.generate_content(prompt)
+                        answer_text = response.text
+                        fallback_success = True
+                        break
+                    except Exception as ex:
+                        last_err = ex
+                        continue
+                if not fallback_success:
+                    raise last_err if last_err else Exception("GenerativeModel execution failed.")
 
             return {
                 "answer": answer_text,

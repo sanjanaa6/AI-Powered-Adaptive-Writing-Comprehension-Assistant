@@ -10,7 +10,7 @@ except ImportError:
     USE_NEW_GENAI = False
 
 class StyleEngine:
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
         self.api_key = api_key
         self.model_name = model_name
         self.client = None
@@ -25,7 +25,10 @@ class StyleEngine:
             self.client = genai.Client(api_key=api_key)
         else:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel(self.model_name)
+            try:
+                self.model = genai.GenerativeModel(self.model_name)
+            except Exception:
+                self.model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
     def evaluate_readability(self, text: str) -> dict:
         """Calculates quantitative readability metrics for a given text block."""
@@ -103,7 +106,7 @@ Rewritten Text (provide only the transformed text without meta comments):
                 except Exception as e_model:
                     err_msg = str(e_model).lower()
                     if "404" in err_msg or "not found" in err_msg or "not supported" in err_msg:
-                        fallbacks = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"]
+                        fallbacks = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-pro"]
                         fallback_success = False
                         for fb in fallbacks:
                             if fb == self.model_name:
@@ -120,8 +123,22 @@ Rewritten Text (provide only the transformed text without meta comments):
                     else:
                         raise e_model
             else:
-                response = self.model.generate_content(prompt)
-                transformed_text = response.text.strip()
+                # Legacy google.generativeai fallback mechanism
+                fallbacks = [self.model_name, "gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.5-pro", "gemini-pro"]
+                fallback_success = False
+                last_err = None
+                for fb in fallbacks:
+                    try:
+                        m = genai.GenerativeModel(fb)
+                        response = m.generate_content(prompt)
+                        transformed_text = response.text.strip()
+                        fallback_success = True
+                        break
+                    except Exception as ex:
+                        last_err = ex
+                        continue
+                if not fallback_success:
+                    raise last_err if last_err else Exception("GenerativeModel execution failed.")
 
             trans_metrics = self.evaluate_readability(transformed_text)
 

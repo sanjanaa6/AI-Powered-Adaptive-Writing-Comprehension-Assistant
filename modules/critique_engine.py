@@ -9,7 +9,7 @@ except ImportError:
     USE_NEW_GENAI = False
 
 class CritiqueEngine:
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
         self.api_key = api_key
         self.model_name = model_name
         self.client = None
@@ -24,7 +24,10 @@ class CritiqueEngine:
             self.client = genai.Client(api_key=api_key)
         else:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel(self.model_name)
+            try:
+                self.model = genai.GenerativeModel(self.model_name)
+            except Exception:
+                self.model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
     def review_essay(self, essay_text: str, academic_level: str = "Undergraduate") -> str:
         """Evaluates a student's essay draft pedagogically without ghostwriting it."""
@@ -65,7 +68,7 @@ Provide your critique formatted in Markdown with the following sections:
                 except Exception as e_model:
                     err_msg = str(e_model).lower()
                     if "404" in err_msg or "not found" in err_msg or "not supported" in err_msg:
-                        fallbacks = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"]
+                        fallbacks = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-pro"]
                         for fb in fallbacks:
                             if fb == self.model_name:
                                 continue
@@ -78,7 +81,16 @@ Provide your critique formatted in Markdown with the following sections:
                     else:
                         raise e_model
             else:
-                response = self.model.generate_content(prompt)
-                return response.text
+                fallbacks = [self.model_name, "gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.5-pro", "gemini-pro"]
+                last_err = None
+                for fb in fallbacks:
+                    try:
+                        m = genai.GenerativeModel(fb)
+                        response = m.generate_content(prompt)
+                        return response.text
+                    except Exception as ex:
+                        last_err = ex
+                        continue
+                raise last_err if last_err else Exception("GenerativeModel execution failed.")
         except Exception as e:
             return f"Error evaluating essay: {str(e)}"

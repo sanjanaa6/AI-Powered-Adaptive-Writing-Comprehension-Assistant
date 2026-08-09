@@ -1,61 +1,14 @@
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editor directories and files
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-*.user
-*.userosscache
-*.sln.docstates
-
-# Python
+# Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
 *$py.class
-.python-version
+
+# Environments
 venv/
-.venv/
 env/
 ENV/
-.Python
-pyenv/
-
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-
-# Build
-dist/
-build/
-coverage/
-*.egg-info/
-.eggs/
-
-# Environment
 .env
-.env.*
 
-# Logs
-*.log
-logs/
-*.log.*
-
-# Misc
-*.tmp
-*.temp
-*.bak
-*.swp
-*.swo
-*.lock
+# Vector DB & Cache
+chroma_db/
+.streamlit/
