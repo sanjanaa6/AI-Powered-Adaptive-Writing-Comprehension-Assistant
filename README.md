@@ -80,13 +80,39 @@ Open your browser at `http://localhost:8503` (or `http://localhost:8501`).
 
 ---
 
-## 📁 Project Structure
+## 🌐 How to Deploy
 
-- `app.py`: Main Streamlit Web Application Dashboard
-- `config.py`: Configuration and environment settings
-- `modules/rag_engine.py`: Document ingestion, TF-IDF vector index, grounded RAG QA
-- `modules/style_engine.py`: Style conditioning & textstat Flesch-Kincaid readability scoring
-- `modules/originality_engine.py`: Similarity scoring and N-gram overlap detection
-- `modules/critique_engine.py`: Multi-criteria pedagogical essay reviewer
-- `utils/text_helpers.py`: PDF, DOCX, and TXT file parsing utilities
-- `requirements.txt`: Python package dependencies
+### Option 1: Streamlit Community Cloud (Recommended - Free & 1-Click)
+Since your repository is pushed to GitHub at [`sanjanaa6/AI-Powered-Adaptive-Writing-Comprehension-Assistant`](https://github.com/sanjanaa6/AI-Powered-Adaptive-Writing-Comprehension-Assistant):
+
+1. Go to **[share.streamlit.io](https://share.streamlit.io/)** and log in with your GitHub account.
+2. Click **New App**.
+3. Fill in your repository details:
+   - **Repository:** `sanjanaa6/AI-Powered-Adaptive-Writing-Comprehension-Assistant`
+   - **Branch:** `main`
+   - **Main file path:** `app.py`
+4. *(Optional)* Click **Advanced Settings** -> **Secrets** and add:
+   ```toml
+   GEMINI_API_KEY = "your_gemini_api_key_here"
+   ```
+5. Click **Deploy!** Your app will be live with a public shareable URL (e.g., `https://your-app.streamlit.app`).
+
+---
+
+### Option 2: Deploy on Render.com (Free Web Service)
+
+1. Sign up at **[Render.com](https://render.com)**.
+2. Click **New +** -> **Web Service** -> Connect your GitHub repo.
+3. Configure settings:
+   - **Environment:** Python 3
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `streamlit run app.py --server.port $PORT --server.address 0.0.0.0`
+4. Click **Create Web Service**.
+
+---
+
+### Option 3: Deploy on Hugging Face Spaces (Free)
+
+1. Create a space at **[huggingface.co/spaces](https://huggingface.co/spaces)**.
+2. Choose **Streamlit** as the Space SDK.
+3. Sync your GitHub repository to Hugging Face Spaces.
