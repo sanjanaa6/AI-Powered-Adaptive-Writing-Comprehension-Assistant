@@ -124,19 +124,30 @@ st.markdown("""
 with st.sidebar:
     st.title("⚙️ System Settings")
     
-    user_key = st.text_input(
-        "Google Gemini API Key:",
-        value=st.session_state.api_key,
-        type="password",
-        help="Get an API key from Google AI Studio (aistudio.google.com)"
-    )
+    server_key_active = bool(GEMINI_API_KEY)
+    
+    if server_key_active:
+        st.success("🔒 Secure Server API Key Active")
+        with st.expander("🔑 Override with Custom API Key"):
+            custom_key = st.text_input(
+                "Enter Custom Gemini API Key:",
+                type="password",
+                help="Leave blank to use default secure server key."
+            )
+            user_key = custom_key.strip() if custom_key.strip() else GEMINI_API_KEY
+    else:
+        st.warning("⚠️ No Server API Key Configured")
+        user_key = st.text_input(
+            "Enter Google Gemini API Key:",
+            type="password",
+            help="Get a free key from Google AI Studio (aistudio.google.com)"
+        ).strip()
     
     if user_key != st.session_state.api_key:
         st.session_state.api_key = user_key
         st.session_state.rag_engine.set_api_key(user_key)
         st.session_state.style_engine.set_api_key(user_key)
         st.session_state.critique_engine.set_api_key(user_key)
-        st.success("API Key updated!")
         
     model_choice = st.selectbox("LLM Backend Model:", AVAILABLE_MODELS)
     st.session_state.rag_engine.model_name = model_choice

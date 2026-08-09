@@ -4,8 +4,21 @@ from dotenv import load_dotenv
 # Load environment variables from .env file if available
 load_dotenv()
 
-# Google Gemini API key
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+def get_config_api_key() -> str:
+    """Safely retrieves API key from Streamlit secrets or environment variables."""
+    key = ""
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            key = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        pass
+        
+    if not key:
+        key = os.getenv("GEMINI_API_KEY", "")
+    return key
+
+GEMINI_API_KEY = get_config_api_key()
 
 # Default LLM Model Name
 DEFAULT_MODEL_NAME = "gemini-2.5-flash"
