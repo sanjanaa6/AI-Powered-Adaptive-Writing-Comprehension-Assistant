@@ -1,4 +1,7 @@
 import os
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 try:
     from google import genai
     USE_NEW_GENAI = True
@@ -6,16 +9,14 @@ except ImportError:
     import google.generativeai as genai
     USE_NEW_GENAI = False
 
-try:
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-except ImportError:
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
+from utils.text_helpers import split_text_into_chunks
+
 class RAGEngine:
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
         self.api_key = api_key
         self.model_name = model_name
         self.client = None
@@ -42,8 +43,7 @@ class RAGEngine:
         if not text.strip():
             return 0
 
-        splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
-        raw_chunks = splitter.split_text(text)
+        raw_chunks = split_text_into_chunks(text, chunk_size=800, chunk_overlap=150)
         
         chunk_objs = []
         for i, c in enumerate(raw_chunks):
@@ -73,18 +73,30 @@ class RAGEngine:
         if not self.chunks or self.vectorizer is None:
             return []
             
-        query_vec = self.vectorizer.transform([query])
-        sims = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
-        top_indices = np.argsort(sims)[::-1][:top_k]
-        
-        results = []
-        for idx in top_indices:
-            if sims[idx] > 0.05:
-                results.append({
-                    "chunk": self.chunks[idx],
-                    "score": float(sims[idx])
-                })
-        return results
+        try:
+            query_vec = self.vectorizer.transform([query])
+            sims = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
+            top_indices = np.argsort(sims)[::-1][:top_k]
+            
+            results = []
+            for idx in top_indices:
+                if sims[idx] > 0.001:
+                    results.append({
+                        "chunk": self.chunks[idx],
+                        "score": float(sims[idx])
+                    })
+            
+            # Fallback: if no chunks met threshold (e.g. short or generic question), return top_k chunks from document
+            if not results and self.chunks:
+                for c in self.chunks[:top_k]:
+                    results.append({
+                        "chunk": c,
+                        "score": 0.01
+                    })
+                    
+            return results
+        except Exception:
+            return [{"chunk": c, "score": 0.01} for c in self.chunks[:top_k]]
 
     def generate_grounded_answer(self, query: str, top_k: int = 3) -> dict:
         """Generates a grounded academic answer using retrieved context passages."""
@@ -124,11 +136,31 @@ ANSWER:
 
         try:
             if USE_NEW_GENAI and self.client:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt
-                )
-                answer_text = response.text
+                try:
+                    response = self.client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt
+                    )
+                    answer_text = response.text
+                except Exception as e_model:
+                    err_msg = str(e_model).lower()
+                    if "404" in err_msg or "not found" in err_msg or "not supported" in err_msg:
+                        fallbacks = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"]
+                        fallback_success = False
+                        for fb in fallbacks:
+                            if fb == self.model_name:
+                                continue
+                            try:
+                                response = self.client.models.generate_content(model=fb, contents=prompt)
+                                answer_text = response.text
+                                fallback_success = True
+                                break
+                            except Exception:
+                                continue
+                        if not fallback_success:
+                            raise e_model
+                    else:
+                        raise e_model
             else:
                 response = self.model.generate_content(prompt)
                 answer_text = response.text

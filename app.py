@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from config import GEMINI_API_KEY, DEFAULT_MODEL_NAME, GRADE_LEVEL_TARGETS
+from config import GEMINI_API_KEY, DEFAULT_MODEL_NAME, AVAILABLE_MODELS, GRADE_LEVEL_TARGETS
 from utils.text_helpers import extract_bytes_to_text
 from modules.rag_engine import RAGEngine
 from modules.style_engine import StyleEngine
@@ -138,7 +138,7 @@ with st.sidebar:
         st.session_state.critique_engine.set_api_key(user_key)
         st.success("API Key updated!")
         
-    model_choice = st.selectbox("LLM Backend Model:", ["gemini-1.5-flash", "gemini-1.5-pro"])
+    model_choice = st.selectbox("LLM Backend Model:", AVAILABLE_MODELS)
     st.session_state.rag_engine.model_name = model_choice
     st.session_state.style_engine.model_name = model_choice
     st.session_state.critique_engine.model_name = model_choice
@@ -177,12 +177,18 @@ with tab1:
         st.subheader("1. Load Academic Sources")
         uploaded_file = st.file_uploader("Upload PDF, TXT, or DOCX:", type=["pdf", "txt", "docx"])
         
+        if "indexed_files" not in st.session_state:
+            st.session_state["indexed_files"] = set()
+
         if uploaded_file is not None:
-            if st.button("📥 Index Document", use_container_width=True):
+            if uploaded_file.name not in st.session_state["indexed_files"]:
                 with st.spinner("Parsing & Chunking Document..."):
                     file_text = extract_bytes_to_text(uploaded_file.getvalue(), uploaded_file.name)
                     num_chunks = st.session_state.rag_engine.ingest_document(file_text, uploaded_file.name)
+                    st.session_state["indexed_files"].add(uploaded_file.name)
                     st.success(f"Indexed '{uploaded_file.name}' into {num_chunks} chunks!")
+            else:
+                st.info(f"📄 '{uploaded_file.name}' is currently loaded in memory.")
                     
         st.divider()
         st.markdown("**Sample Quick Input:**")

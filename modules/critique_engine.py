@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 try:
     from google import genai
     USE_NEW_GENAI = True
@@ -53,11 +56,27 @@ Provide your critique formatted in Markdown with the following sections:
 
         try:
             if USE_NEW_GENAI and self.client:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt
-                )
-                return response.text
+                try:
+                    response = self.client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt
+                    )
+                    return response.text
+                except Exception as e_model:
+                    err_msg = str(e_model).lower()
+                    if "404" in err_msg or "not found" in err_msg or "not supported" in err_msg:
+                        fallbacks = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"]
+                        for fb in fallbacks:
+                            if fb == self.model_name:
+                                continue
+                            try:
+                                response = self.client.models.generate_content(model=fb, contents=prompt)
+                                return response.text
+                            except Exception:
+                                continue
+                        raise e_model
+                    else:
+                        raise e_model
             else:
                 response = self.model.generate_content(prompt)
                 return response.text

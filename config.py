@@ -8,7 +8,16 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # Default LLM Model Name
-DEFAULT_MODEL_NAME = "gemini-1.5-flash"
+DEFAULT_MODEL_NAME = "gemini-2.5-flash"
+
+# Available Models List
+AVAILABLE_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-2.5-pro",
+    "gemini-1.5-pro"
+]
 
 # Vector Store Path
 CHROMA_PERSIST_DIR = os.path.join(os.path.dirname(__file__), "chroma_db")

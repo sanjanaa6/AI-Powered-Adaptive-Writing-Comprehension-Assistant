@@ -1,4 +1,7 @@
 import textstat
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 try:
     from google import genai
     USE_NEW_GENAI = True
@@ -91,11 +94,31 @@ Rewritten Text (provide only the transformed text without meta comments):
 
         try:
             if USE_NEW_GENAI and self.client:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt
-                )
-                transformed_text = response.text.strip()
+                try:
+                    response = self.client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt
+                    )
+                    transformed_text = response.text.strip()
+                except Exception as e_model:
+                    err_msg = str(e_model).lower()
+                    if "404" in err_msg or "not found" in err_msg or "not supported" in err_msg:
+                        fallbacks = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"]
+                        fallback_success = False
+                        for fb in fallbacks:
+                            if fb == self.model_name:
+                                continue
+                            try:
+                                response = self.client.models.generate_content(model=fb, contents=prompt)
+                                transformed_text = response.text.strip()
+                                fallback_success = True
+                                break
+                            except Exception:
+                                continue
+                        if not fallback_success:
+                            raise e_model
+                    else:
+                        raise e_model
             else:
                 response = self.model.generate_content(prompt)
                 transformed_text = response.text.strip()
