@@ -12,3 +12,12 @@ ENV/
 # Vector DB & Cache
 chroma_db/
 .streamlit/
+
+# Node & Frontend Build Artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+.DS_Store
+
