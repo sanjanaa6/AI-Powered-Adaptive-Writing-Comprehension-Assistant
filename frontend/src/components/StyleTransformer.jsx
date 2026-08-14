@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { Sliders, Sparkles, ArrowRight, Loader2, BarChart2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Sliders, Sparkles, ArrowRight, Loader2, BarChart2, TrendingUp, TrendingDown, Copy, Check, Wand2 } from 'lucide-react';
 
 const TONES = ["Academic / Formal", "Informal / Conversational", "Technical", "Simplified"];
 const LENGTHS = ["Maintain Original", "Concise Summary", "Expanded Detail"];
+
+const PRESETS = [
+  { id: 'simplify', label: 'Simplify for K-12', tone: 'Simplified', level: 'Elementary (Grades 1-5)', length: 'Concise Summary' },
+  { id: 'academic', label: 'College Academic', tone: 'Academic / Formal', level: 'Undergraduate (College)', length: 'Maintain Original' },
+  { id: 'postgrad', label: 'Research Paper', tone: 'Technical', level: 'Postgraduate / Academic Research', length: 'Expanded Detail' },
+];
 
 export default function StyleTransformer({ stats }) {
   const gradeTargets = stats?.grade_level_targets || [
@@ -22,6 +28,13 @@ export default function StyleTransformer({ stats }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const applyPreset = (preset) => {
+    setTone(preset.tone);
+    setReadingLevel(preset.level);
+    setLengthOpt(preset.length);
+  };
 
   const handleTransform = async () => {
     if (!inputText.trim()) return;
@@ -51,6 +64,14 @@ export default function StyleTransformer({ stats }) {
     }
   };
 
+  const copyOutput = () => {
+    if (result?.transformed_text) {
+      navigator.clipboard.writeText(result.transformed_text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const origMetrics = result?.metrics_original || {};
   const transMetrics = result?.metrics_transformed || {};
 
@@ -61,17 +82,32 @@ export default function StyleTransformer({ stats }) {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="border-b border-slate-800 pb-5">
-        <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Sliders className="w-6 h-6 text-purple-400" /> Style & Readability Transformer
-        </h2>
-        <p className="text-slate-400 text-sm mt-1">
-          Transform tone, complexity, and target reading level while tracking readability metric deltas in real time.
-        </p>
+      <div className="border-b border-slate-800 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+            <Sliders className="w-6 h-6 text-purple-400" /> Style & Readability Transformer
+          </h2>
+          <p className="text-slate-400 text-sm mt-1">
+            Transform text complexity and target reading grade level while tracking quantitative readability metrics.
+          </p>
+        </div>
+
+        {/* Quick Presets */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {PRESETS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => applyPreset(p)}
+              className="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 text-xs font-semibold transition-all flex items-center gap-1.5"
+            >
+              <Wand2 className="w-3.5 h-3.5 text-purple-400" /> {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold shadow-lg">
           {error}
         </div>
       )}
@@ -79,15 +115,18 @@ export default function StyleTransformer({ stats }) {
       {/* Main Split Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Inputs & Options */}
-        <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-5">
-          <h3 className="text-base font-bold text-white">Original Draft Text</h3>
+        <div className="glass-card p-6 rounded-3xl border border-slate-800 space-y-5 shadow-xl">
+          <h3 className="text-base font-bold text-white flex items-center justify-between">
+            <span>Original Draft Text</span>
+            <span className="text-xs font-semibold text-slate-400">Input</span>
+          </h3>
 
           <textarea
             rows={8}
             placeholder="Paste text passage here to rewrite, simplify, or adapt tone..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 resize-none"
+            className="w-full px-4 py-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 resize-none leading-relaxed shadow-inner"
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -96,7 +135,7 @@ export default function StyleTransformer({ stats }) {
               <select
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500"
               >
                 {TONES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -107,7 +146,7 @@ export default function StyleTransformer({ stats }) {
               <select
                 value={readingLevel}
                 onChange={(e) => setReadingLevel(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500"
               >
                 {gradeTargets.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
@@ -118,7 +157,7 @@ export default function StyleTransformer({ stats }) {
               <select
                 value={lengthOpt}
                 onChange={(e) => setLengthOpt(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500"
               >
                 {LENGTHS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
@@ -129,7 +168,7 @@ export default function StyleTransformer({ stats }) {
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Custom Instruction (Optional)</label>
             <input
               type="text"
-              placeholder="e.g. Include bullet points or concrete examples"
+              placeholder="e.g. Include bullet points or concrete real-world examples"
               value={customInst}
               onChange={(e) => setCustomInst(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 text-xs focus:outline-none focus:border-purple-500"
@@ -139,7 +178,7 @@ export default function StyleTransformer({ stats }) {
           <button
             onClick={handleTransform}
             disabled={loading || !inputText.trim()}
-            className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-600/25 disabled:opacity-50"
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-600/25 disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {loading ? 'Transforming Style...' : 'Transform Text Style'}
@@ -148,13 +187,22 @@ export default function StyleTransformer({ stats }) {
 
         {/* Right: Transformed Output & Metrics */}
         <div className="space-y-6">
-          <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center justify-between">
+          <div className="glass-card p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+            <h3 className="text-base font-bold text-white flex items-center justify-between border-b border-slate-800 pb-3">
               <span>Transformed Output</span>
               {result && (
-                <span className="text-xs font-medium text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
-                  Transformed
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 glow-purple">
+                    Transformed
+                  </span>
+                  <button
+                    onClick={copyOutput}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    title="Copy Output"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
               )}
             </h3>
 
@@ -163,42 +211,42 @@ export default function StyleTransformer({ stats }) {
               readOnly
               placeholder="Transformed text output will appear here..."
               value={result?.transformed_text || ''}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-200 placeholder-slate-600 text-sm focus:outline-none resize-none font-sans leading-relaxed"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none resize-none font-sans leading-relaxed shadow-inner"
             />
           </div>
 
           {/* Metrics Comparison */}
           {result && (
-            <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4 animate-fadeIn">
+            <div className="glass-card p-6 rounded-3xl border border-slate-800 space-y-4 animate-fadeIn shadow-2xl">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-purple-400" /> Quantitative Readability Impact
+                <BarChart2 className="w-4 h-4 text-purple-400" /> Quantitative Readability Impact Metrics
               </h4>
 
               <div className="grid grid-cols-3 gap-4">
                 {/* FK Grade */}
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
                   <div className="text-xs font-medium text-slate-400 mb-1">FK Grade Level</div>
-                  <div className="text-2xl font-bold text-white">{transMetrics.flesch_kincaid_grade || 0}</div>
-                  <div className={`text-xs font-semibold mt-1 inline-flex items-center gap-1 ${fkDelta <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  <div className="text-2xl font-black text-white">{transMetrics.flesch_kincaid_grade || 0}</div>
+                  <div className={`text-xs font-bold mt-1 inline-flex items-center gap-1 ${fkDelta <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {fkDelta <= 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
                     {fkDelta > 0 ? `+${fkDelta.toFixed(1)}` : fkDelta.toFixed(1)}
                   </div>
                 </div>
 
                 {/* Reading Ease */}
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                  <div className="text-xs font-medium text-slate-400 mb-1">Flesch Reading Ease</div>
-                  <div className="text-2xl font-bold text-white">{transMetrics.flesch_reading_ease || 0}</div>
-                  <div className={`text-xs font-semibold mt-1 inline-flex items-center gap-1 ${freDelta >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                  <div className="text-xs font-medium text-slate-400 mb-1">Reading Ease</div>
+                  <div className="text-2xl font-black text-white">{transMetrics.flesch_reading_ease || 0}</div>
+                  <div className={`text-xs font-bold mt-1 inline-flex items-center gap-1 ${freDelta >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {freDelta >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                     {freDelta > 0 ? `+${freDelta.toFixed(1)}` : freDelta.toFixed(1)}
                   </div>
                 </div>
 
                 {/* Word Count */}
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
                   <div className="text-xs font-medium text-slate-400 mb-1">Word Count</div>
-                  <div className="text-2xl font-bold text-white">{transMetrics.word_count || 0}</div>
+                  <div className="text-2xl font-black text-white">{transMetrics.word_count || 0}</div>
                   <div className="text-xs font-semibold text-slate-400 mt-1">
                     {wcDelta >= 0 ? `+${wcDelta}` : wcDelta} words
                   </div>
@@ -211,3 +259,4 @@ export default function StyleTransformer({ stats }) {
     </div>
   );
 }
+
