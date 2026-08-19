@@ -4,7 +4,6 @@ An AI-powered academic writing and comprehension workspace designed for students
 
 ---
 
-## 🌐 100% Free Deployment Options
 
 ### Option 1: Streamlit Community Cloud (Recommended & Easiest)
 1. **Push your code to GitHub**:
